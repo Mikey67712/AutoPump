@@ -4,7 +4,7 @@ Standalone control system for an air compressor. Intended use is for inflating a
 Auto mode: Allows the user to specify a pressure setpoint that the controller will strive to reach by switching on an air compressor or opening a solenoid.
 Manual mode: Gives the user direct control over the air compressor and solenoid.
 
-It pains me that the raw calcs are in imperial units... but ceebs re-writing using metric for the raw calcs._
+It pains me that the raw calcs are in imperial units... but ceebs re-writing it using metric.
 
 Parts (high level):
 - ESP32 (denky32/wroom)
