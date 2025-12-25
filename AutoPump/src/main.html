@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0 minimum-scale=1.0">
+        <title>AutoPump HMI</title>
+        <style>
+            :root {
+                --white: #ffffff;
+                --grey-1: #f0f0f0;
+                --grey-2: #d0d0d0;
+                --grey-3: #a0a0a0;
+                --grey-4: #707070;
+                --grey-5: #404040;
+                --grey-6: #202020;
+                --grey-7: #101010;
+                --red: #881f1f;
+            }
+            *, *::before, *::after {
+                box-sizing: border-box !important;
+                margin: 0;
+                padding: 0;
+            }
+        body { 
+            font-family: sans-serif; 
+            background: var(--grey-2);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        h1 {
+            font-size: 2rem;
+            position: sticky;
+            top: 0;
+            padding: 10px 20px;
+            background-color: var(--grey-2);
+            border-bottom: 1px solid var(--grey-3);
+        }
+
+        main {
+            padding: 40px 20px;
+            background: var(--grey-1);
+            flex-grow: 1;
+        }
+        .btn {
+            padding: 10px 20px; 
+            border: none;
+            border-radius: 10px; 
+            cursor: pointer;
+            background: var(--grey-2); 
+            border: 1px solid var(--grey-3);
+            font-size: 1rem;
+            font-weight: bolder;
+            color: var(--grey-6);
+            align-self: flex-start;
+        }
+        /* Prevent text selection on buttons */
+        .btn {
+            user-select: none; /* Standard */
+            -webkit-user-select: none; /* Safari */
+            -ms-user-select: none; /* IE10+ */
+            -moz-user-select: none; /* Firefox */
+            -webkit-touch-callout: none; /* Disable callout menu on iOS */
+        }
+        .btn.active { 
+            background: var(--grey-5);
+            color: var(--white); 
+            border: none;
+        }
+        #GOBtn {
+            width: 100%;
+            margin-top: 40px;
+            font-size: 1.5rem;
+        }
+        #GOBtn.active {
+            background: var(--red);
+            color: var(--white);
+            border: 1px solid var(--red);
+        }
+        #AUTOBtn.active, #MANUALBtn.active {
+            padding-bottom: 20px;
+            border-radius: 10px 10px 0 0;
+        }
+        .btn-small {
+            font-size: 1rem;
+            padding: 5px 15px;
+            border-radius: 100px;
+            color: var(--grey-5);
+        }
+
+        .auto-manual-toggle {
+            display: flex;
+            gap: 10px;
+        }
+        .auto-manual-toggle .btn {
+            flex: 1;
+        }
+        .auto-and-manual {
+            border: 2px solid var(--grey-3);
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 40px;
+            background: var(--grey-1);
+        }
+        label {
+            font-weight: bolder;
+            color: var(--grey-4);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+        .auto-only, .manual-only {
+            display: none;
+        }
+        .PspInputContainer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #PspInput {
+            background: none;
+            border: 1px solid var(--grey-3);
+            height: 30px;
+            flex-grow: 1;
+            border-radius: 100px;
+            padding-inline: 10px;
+        }
+
+        main:has(#AUTOBtn.active) .manual-only {
+            display: none;
+        }
+        main:has(#AUTOBtn.active) .auto-only {
+            display: block;
+            border: 2px solid var(--grey-5);
+            padding: 20px 10px;
+            border-radius: 0px 10px 10px 10px;
+        }
+        main:has(#MANUALBtn.active) .auto-only {
+            display: none;
+        }
+        main:has(#MANUALBtn.active) .manual-only {
+            display: block;
+            border: 2px solid var(--grey-5);
+            padding: 20px 10px;
+            border-radius: 10px 0px 10px 10px;
+        }
+        .manual-btns {
+            display: flex;
+            gap: 10px;
+        }
+        .manual-btns .btn {
+            flex: 1;
+        }
+        #StateMessage, #PressureDisplay {
+            font-size: 1rem !important;
+            font-weight: normal !important;
+
+        }
+        </style>
+        </head>
+
+        
+        <body>
+
+        <h1>AutoPump</h1>
+
+        <main>
+            
+            <div class="auto-and-manual">
+                <label for="unitSelect">Pressure Units:</label>
+                <select id="unitSelect" onchange="requestUnitChange()">
+                    <option value="kPa">kPa</option>
+                    <option value="psi">psi</option>
+                    <option value="bar">bar</option>
+                    <option value="kg/cm2">kg/cm²</option>
+                    <option value="atm">atm</option>
+                </select>
+                
+                <div style="margin-top:10px;">
+                    <label>Live Pressure:</label>
+                    <span id="PressureDisplay" style="font-size:2em; font-weight:bold;"></span>
+                </div>
+                
+                <div style="margin-top:10px;">
+                    <label>State Message:</label>
+                    <span id="StateMessage" style="font-size:2em; font-weight:bold;"></span>
+                </div>
+            </div>
+            
+            <div class="auto-manual-toggle">
+                <button id="AUTOBtn" class="btn">Auto</button>
+                <button id="MANUALBtn" class="btn">Manual</button>
+            </div>
+            
+            <div class="manual-only">
+                <div class="manual-btns">
+                    
+                    <button id="ManualInflateBtn" class="btn btn-small">Inflate</button>
+                    <button id="ManualDeflateBtn" class="btn btn-small">Deflate</button>
+                </div>
+            </div>
+            
+            <div class="auto-only">
+                <label for="PspInput" class="PspInputContainer">Pressure Setpoint:
+                    <input type="number" id="PspInput" min="1" max="50" step="0.1">
+                    
+                </label>
+                <span id="PspDisplay"></span>
+            </div>
+            <button id="GOBtn" class="btn">GO</button>
+    
+        </main>
+
+
+
+
+        
+        <script>
+
+            // const autoBtn = document.getElementById('AUTOBtn');
+            // autoBtn.addEventListener('click', () => {
+            //     document.getElementById('MANUALBtn').classList.remove('active');
+            //     autoBtn.classList.add('active');
+            // });
+            // const manualBtn = document.getElementById('MANUALBtn');
+            // manualBtn.addEventListener('click', () => {
+            //     document.getElementById('AUTOBtn').classList.remove('active');
+            //     manualBtn.classList.add('active');
+            // });
+        // --- Bit Definitions ---
+        const Bit00 = 1 << 0; // GOBtn (Bit 2^0)
+        const Bit01 = 1 << 1; // AUTO (Bit 2^1)
+        const Bit02 = 1 << 2; // MANUAL (Bit 2^2)
+        const Bit03 = 1 << 3; // ManualInflate (Bit 2^3)
+        const Bit04 = 1 << 4; // ManualDeflate (Bit 2^4)
+        const Bit05 = 1 << 5; // Unused
+        const Bit06 = 1 << 6; // Unused
+        const Bit07 = 1 << 7; // Unused
+        const Bit08 = 1 << 8; // Unused
+        const Bit09 = 1 << 9; // Unused
+        const Bit10 = 1 << 10; // Unused
+        const Bit11 = 1 << 11; // Unused
+        const Bit12 = 1 << 12; // Unused
+        const Bit13 = 1 << 13; // Unused
+        const Bit14 = 1 << 14; // Unused
+        const Bit15 = 1 << 15; // Unused
+
+        // Disable long-press text selection on buttons (especially for mobile)
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('contextmenu', (e) => {
+                e.preventDefault(); // Prevents right-click or long-press menu
+            });
+        });
+
+
+
+        // Initial unit selection
+        let selectedUnit = document.getElementById('unitSelect').value; // grab initial dropdown value
+
+        // Backend-authoritative UI state
+        let uiState = {
+            GOBtn: false,
+            AUTOBtn: false,
+            MANUALBtn: false,
+            ManualInflateBtn: false,
+            ManualDeflateBtn: false
+        };
+
+        // Build bitmask from any given state object
+        function buildButtonWordFromState(ButtonState) {
+            let word = 0;
+            if (ButtonState.GOBtn) word |= Bit00;
+            if (ButtonState.AUTOBtn) word |= Bit01;
+            if (ButtonState.MANUALBtn) word |= Bit02;
+            if (ButtonState.ManualInflateBtn) word |= Bit03;
+            if (ButtonState.ManualDeflateBtn) word |= Bit04;
+            return word;
+        }
+
+        // Build bitmask for unit request
+        function buildHMIUnitRequestWord(){
+            let word = 0;
+            let unitRequest = document.getElementById('unitSelect').value;
+            if (unitRequest == "kPa") word |= Bit00;
+            if (unitRequest == "psi") word |= Bit01;
+            if (unitRequest == "bar") word |= Bit02;
+            if (unitRequest == "kg/cm2") word |= Bit03;
+            if (unitRequest == "atm") word |= Bit04;
+            return word;
+        }
+
+        // Apply backend-authoritative button states to UI
+        function applyBackendButtonStates(word) {
+            // Decode bits
+            let GOResponse = !!(word & Bit00);
+            let AUTOResponse = !!(word & Bit01);
+            let MANUALResponse = !!(word & Bit02);
+            let ManualInflateResponse = !!(word & Bit03);
+            let ManualDeflateResponse = !!(word & Bit04);
+
+            // Update uiState
+            uiState.GOBtn = GOResponse;
+            uiState.AUTOBtn = AUTOResponse;
+            uiState.MANUALBtn = MANUALResponse;
+            uiState.ManualInflateBtn = ManualInflateResponse;
+            uiState.ManualDeflateBtn = ManualDeflateResponse;
+
+            // Update button visuals
+            document.getElementById('GOBtn').classList.toggle('active', GOResponse);
+            document.getElementById('AUTOBtn').classList.toggle('active', AUTOResponse);
+            document.getElementById('MANUALBtn').classList.toggle('active', MANUALResponse);
+            document.getElementById('ManualInflateBtn').classList.toggle('active', ManualInflateResponse);
+            document.getElementById('ManualDeflateBtn').classList.toggle('active', ManualDeflateResponse);
+
+            // Update select dropdown to match backend state (if needed)
+            const unitSelect = document.getElementById('unitSelect');
+        }
+
+        // Send a request for desired states to backend & update UI ONLY after backend responds
+        function requestStateChange(desiredStates) {
+
+                let buttonRequestWord = buildButtonWordFromState(desiredStates);
+                fetch(`/hmi?HMIButtonRequestWord=${buttonRequestWord}`)
+
+                    .then(res => res.json())
+                    .then(data => {
+                        let backendButtonResponse = data.ESPButtonResponseWord;
+                        applyBackendButtonStates(backendButtonResponse); // backend decides final state
+                    })
+                    .catch(err => console.error("HMI request failed:", err));                    
+        }
+
+        function requestUnitChange() {
+            const newUnit = document.getElementById('unitSelect').value;
+
+            fetch(`/setUnit?unit=${newUnit}`)
+                .then(response => response.json())
+                .then(data => {
+                    selectedUnit = data.unit;                    
+                    document.getElementById('unitSelect').value = selectedUnit;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // --- Pressure Setpoint Handling ---
+        function requestSetpointChange(newSetpoint) {
+            fetch(`/hmi?PspHMI=${newSetpoint}`)
+                .then(res => res.json())
+                .then(data => {
+                    // Backend returns authoritative setpoint
+                    if (data.Psp !== undefined) {
+                        if (document.activeElement !== document.getElementById('PspInput')) {
+                            document.getElementById('PspInput').value = data.Psp;
+                        }
+                        document.getElementById('PspDisplay').textContent = `Setpoint: ${data.Psp} psi`;
+                    }
+                    // Also update button states if present
+                    if (data.ESPButtonResponseWord !== undefined) {
+                        applyBackendButtonStates(data.ESPButtonResponseWord);
+                    }
+                })
+                .catch(err => console.error("Setpoint request failed:", err));
+        }
+
+        document.getElementById('PspInput').addEventListener('blur', () => {
+            let val = parseFloat(document.getElementById('PspInput').value);
+            if (!isNaN(val)) {
+                requestSetpointChange(val);
+            }
+        });
+
+        document.getElementById('PspInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                let val = parseFloat(document.getElementById('PspInput').value);
+                if (!isNaN(val)) {
+                    requestSetpointChange(val);
+                    document.getElementById('PspInput').blur(); // Optionally close keyboard on mobile
+                }
+            }
+        });
+
+        // Click handlers: build a desired state, but don't apply locally
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                let id = btn.id;
+                let requestedStates = { ...uiState }; // copy current backend-authoritative state
+
+                if (id === 'GOBtn') requestedStates.GOBtn = !uiState.GOBtn;
+                if (id === 'AUTOBtn') requestedStates.AUTOBtn = !uiState.AUTOBtn;
+                if (id === 'MANUALBtn') requestedStates.MANUALBtn = !uiState.MANUALBtn;
+
+                // Send to backend → wait for confirmation → update UI
+                requestStateChange(requestedStates);
+            });
+        });
+
+        // manual buttons push and hold
+        const inflateBtn = document.getElementById('ManualInflateBtn');
+        const deflateBtn = document.getElementById('ManualDeflateBtn');
+
+        // Prevent click from firing after touch
+        deflateBtn.addEventListener('click', (e) => e.preventDefault());
+        inflateBtn.addEventListener('click', (e) => e.preventDefault());
+
+        // Deflate Button
+        deflateBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            deflateBtn.setPointerCapture(e.pointerId);
+            setManualDeflate(true);
+        });
+
+        deflateBtn.addEventListener('pointerup', (e) => {
+            e.preventDefault();
+            setManualDeflate(false);
+            deflateBtn.releasePointerCapture(e.pointerId);
+        });
+
+        // Inflate Button
+        inflateBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            inflateBtn.setPointerCapture(e.pointerId);
+            setManualInflate(true);
+        });
+
+        inflateBtn.addEventListener('pointerup', (e) => {
+            e.preventDefault();
+            setManualInflate(false);
+            inflateBtn.releasePointerCapture(e.pointerId);
+        });
+
+        // State change functions
+        function setManualDeflate(value) {
+            requestStateChange({ ...uiState, ManualDeflateBtn: value });
+        }
+
+        function setManualInflate(value) {
+            requestStateChange({ ...uiState, ManualInflateBtn: value });
+        }
+
+        // Poll backend periodically to keep in sync (buttons + setpoint)
+        setInterval(() => {
+            fetch('/hmi')
+                .then(res => res.json())
+                .then(data => {
+
+                    // --- UI update ---
+                    if (data.ESPButtonResponseWord !== undefined) {
+                        applyBackendButtonStates(data.ESPButtonResponseWord);
+                    }
+                    if (data.Psp !== undefined) {
+                        if (document.activeElement !== document.getElementById('PspInput')) {
+                            document.getElementById('PspInput').value = data.Psp;
+                        }
+                        document.getElementById('PspDisplay').textContent = `Setpoint: ${data.Psp} ${data.unit}`;
+                    }
+                    if (data.Pressure !== undefined) {
+                        document.getElementById('PressureDisplay').textContent = `${data.Pressure.toFixed(2)} ${data.unit}`;
+                    }
+                    if (data.StateMessage !== undefined) {
+                        document.getElementById('StateMessage').textContent = data.StateMessage;
+                    }
+                    if (data.unit !== undefined) {
+                        document.getElementById('unitSelect').value = data.unit;
+                    }
+                })
+                .catch(err => console.warn("Polling failed:", err));
+        }, 250); // 4 times per second
+
+        </script>
+        </body>
+        </html>
